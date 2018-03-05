@@ -1,16 +1,16 @@
 package absyn;
 
-public class DecFun extends Exp {
+public class DecFun extends Dec {
 	public Type type;
-	public String name;
-	public Params params;
-	public Exp statement;
+	public String id;
+	public ParamList params;
+	public StmtComp body;
 
-	public DecFun (int pos, Type type, String name, Params params, Exp statement) {
+	public DecFun (int pos, Type type, String id, ParamList params, StmtComp body) {
 		this.pos = pos;
 		this.type = type;
-		this.name = name;
+		this.id = id;
 		this.params = params;
-		this.statement = statement;
+		this.body = body;
 	}
 }
