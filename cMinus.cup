@@ -149,7 +149,7 @@ var_declaration ::= type_specifier:t ID:i SEMI
 
 /* 5. type-specifier -> int | void */
 type_specifier  ::= INT:i
-                  {: RESULT = i; :}
+                  {:  :}
                 | VOID
                   {:  :}
                 ;
@@ -161,7 +161,7 @@ fun_declaration ::= type_specifier:t ID:i LPAREN params:p RPAREN compound_stmt:c
 
 /* 7. params -> param-list | void */
 params          ::= param_list:pl
-                  {: RESULT = pl; :}
+                  {:  :}
                 | VOID
                   {:  :}
                 ;
@@ -188,16 +188,12 @@ compound_stmt   ::= LBRACE local_delcaration:ld statement_list:sl RBRACE
 /* 11. local-declarations -> local-declarations var-declarations | empty */
 local_declarations ::= local_declarations:ld var_declarations:vd
                      {:  :}
-                   | empty:e
-                     {: RESULT = e; :}
-                   ;
+                   | /* Empty */;
 
 /* 12. statement-list -> statement-list statement | empty */
 statement_list  ::= statement_list:sl statement:s
                   {:  :}
-                | empty:e
-                  {: RESULT = e; :}
-                ;
+                | /* Empty */;
 
 /* 13. statement -> expression-stmt | compound-stmt | selection-stmt
                     | iteration-stmt | return-stmt */
@@ -216,42 +212,40 @@ statement       ::= expression_stmt:es
 /* 14. expression-stmt -> expression ; | ; */
 expression_stmt ::= expression:e SEMI
                   {:  :}
-                | SEMI
-                  {:  :}
-                ;
+                | SEMI ;
 
 /* 15. selection-stmt -> if ( expression ) statement
                          | if ( expression ) statement else statement */
-selection_stmt  ::= IF LPAREN expression:e RPAREN statement:s
+selection_stmt  ::= IF:i LPAREN expression:e RPAREN statement:s
                   {: RESULT = new IfExp(ileft, e, s, null); :}
-                | IF LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
+                | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
                   {: RESULT = new IfExp(ileft, e, s1, s2); :}
                 ;
 
 /* 16. iteration-stmt -> while ( expression ) statement */
-iteration_stmt  ::= WHILE LPAREN expression:e RPAREN statement:s
-                  {: RESULT = new RepeatExp(rleft, s, e); :}
+iteration_stmt  ::= WHILE:w LPAREN expression:e RPAREN statement:s
+                  {: RESULT = new IterExp(wleft, s, e); :}
                 ;
 
 /* 17. return-stmt -> return ; | return expression ; */
-return_stmt     ::= RETURN SEMI
-                  {:  :}
-                | RETURN expression:e SEMI
-                  {:  :}
+return_stmt     ::= RETURN:r SEMI
+                  {: RESULT = new ReturnExp(rleft, null); :}
+                | RETURN:r expression:e SEMI
+                  {: RESULT = new ReturnExp(rleft, e); :}
                 ;
 
 /* 18. expression -> var = expression | simple-expression */
 expression      ::= var:v ASSIGN expression:e
-                  {: RESULT = new AssignExp(ileft, new VarExp(ileft, v), e); :}
+                  {: RESULT = new AssignExp(vleft, new VarExp(vleft, v), e); :}
                 | simple_expression:se
-                  {:  :}
+                  {: RESULT = se; :}
                 ;
 
 /* 19. var -> ID | ID [ expression ] */
 var             ::= ID:i
-                  {: RESULT = i; :}
+                  {: RESULT = new VarExp(ileft, i, null); :}
                 | ID:i LBRACK expression:e RBRACK
-                  {:  :}
+                  {: RESULT = new VarExp(ileft, i, e); :}
                 ;
 
 /* 20. simple-expression -> additive-expression relop additive-expression
@@ -264,45 +258,45 @@ simple_expression ::= additive_expression:e1 relop:r additive_expression:e2
 
 /* 21. relop -> <= | < | > | >= | == | != */
 relop            ::= LTE
-                    {:  :}
+                    {: RESULT = OpExp.LTE; :}
                  | LT
-                    {:  :}
+                    {: RESULT = OpExp.LT; :}
                  | GT
-                    {:  :}
+                    {: RESULT = OpExp.GT; :}
                  | GTE
-                    {:  :}
+                    {: RESULT = OpExp.GTE; :}
                  | EQUAL
-                    {:  :}
+                    {: RESULT = OpExp.EQ; :}
                  | NOT
-                    {:  :}
+                    {: RESULT = OpExp.NOT; :}
                  ; 
 
 /* 22. additive-expression -> additive-expression addop term | term */
 additive_expression ::= additive_expression:e addop:a term:t
-                      {:  :}
+                      {: RESULT = new OpExp(eleft, e, a, t); :}
                     | term:t
                       {: RESULT = t; :}
                     ;
 
 /* 23. addop -> + | - */
 addop            ::= PLUS
-                   {:  :}
+                   {: RESULT = OpExp.PLUS; :}
                  | MINUS
-                   {:  :}
+                   {: RESULT = OpExp.MINUS; :}
                  ;
 
 /* 24. term -> term mulop | factor */
 term             ::= term:t mulop:m
-                   {:  :}
+                   {: RESULT = new OpExp(tleft, t, m, null); :}
                  | factor:f
                    {: RESULT = f; :}
                  ;
 
 /* 25. mulop -> * | / */
 mulop            ::= MUL
-                   {:  :}
+                   {: RESULT = OpExp.TIMES; :}
                  | DIV
-                   {:  :}
+                   {: RESULT = OpExp.OVER; :}
                  ;
 
 /* 26. factor -> ( expression ) | var | call | NUM */
