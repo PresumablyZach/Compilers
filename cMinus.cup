@@ -270,7 +270,7 @@ relop            ::= LTE
                  | NOT
                     {: RESULT = OpExp.NOT; :}
                  ; 
-
+/* Test */
 /* 22. additive-expression -> additive-expression addop term | term */
 additive_expression ::= additive_expression:e addop:a term:t
                       {: RESULT = new OpExp(eleft, e, a, t); :}
