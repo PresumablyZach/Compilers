@@ -88,7 +88,7 @@ non terminal ExpList program, declaration_list, params, param_list, statement_li
 non terminal Exp declaration, var_declaration, fun_declaration, local_declarations, type_specifier;
 
 /* Statements */
-non terminal Exp param, empty, statement, expression_stmt, compound_stmt, select_stmt;
+non terminal Exp param, empty, statement, expression_stmt, compound_stmt, selection_stmt;
 
 /* Expressions */
 non terminal Exp iteration_stmt, return_stmt, expression, simple_expression, additive_expression, var;
@@ -127,7 +127,7 @@ declaration_list ::= declaration_list:dl declaration:d
                    :}
                   | declaration:d2
                    {: RESULT = new ExpList(d2, null); :}
-                  | error SEMI stmt:s
+                  | error SEMI statement:s
                    {: parser.report_error("invalid", null); 
                       RESULT = new ExpList(d2, null); 
                    :}
@@ -135,9 +135,9 @@ declaration_list ::= declaration_list:dl declaration:d
 
 /* 3. declaration -> var-declaration | fun-declaration */
 declaration    ::= var_declaration:d
-                 {: RESULT = d :}
+                 {: RESULT = d; :}
                | fun_declaration:d
-                 {: RESULT = d :}
+                 {: RESULT = d; :}
                ;
 
 /* 4. var-declaration -> type-specifier ID; | type-specifier ID [ NUM ] ; */
@@ -167,7 +167,7 @@ params          ::= param_list:pl
                 ;
 
 /* 8. param-list -> param-list , param | param */
-param-list      ::= param-list:pl COMMA param:p
+param_list      ::= param_list:pl COMMA param:p
                   {:  :}
                 | param:p
                   {: RESULT = p; :}
@@ -176,17 +176,17 @@ param-list      ::= param-list:pl COMMA param:p
 /* 9. param -> type-specifier ID | type-specifier ID [ ] */
 param           ::= type_specifier:t ID
                   {:  :}
-                | type-specifier:t ID RBRACK LBRACK
+                | type_specifier:t ID RBRACK LBRACK
                   {:  :}
                 ;
 
 /* 10. compound-stmt -> { local-declarations statement-list } */
-compound_stmt   ::= LBRACE local_delcaration:ld statement_list:sl RBRACE
+compound_stmt   ::= LBRACE local_declarations:ld statement_list:sl RBRACE
                   {:  :}
                 ;
 
 /* 11. local-declarations -> local-declarations var-declarations | empty */
-local_declarations ::= local_declarations:ld var_declarations:vd
+local_declarations ::= local_declarations:ld var_declaration:vd
                      {:  :}
                    | /* Empty */;
 
