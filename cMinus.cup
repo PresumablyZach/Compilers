@@ -82,10 +82,10 @@ terminal ERROR;
    
 /*non terminal Exp program1;*/
 /* Lists */
-non terminal ExpList program, declaration_list, params, param_list, statement_list, arg_list;
+non terminal ExpList program, declaration_list, params, param_list, statement_list, arg_list, args;
 
 /* Declarations */
-non terminal Exp declaration, var_declaration, fun_declaration, local_declarations, type_specifier;
+non terminal Exp declaration, var_declaration, fun_declaration, local_declarations;
 
 /* Statements */
 non terminal Exp param, empty, statement, expression_stmt, compound_stmt, selection_stmt;
@@ -94,7 +94,10 @@ non terminal Exp param, empty, statement, expression_stmt, compound_stmt, select
 non terminal Exp iteration_stmt, return_stmt, expression, simple_expression, additive_expression, var;
 
 /* Operations */
-non terminal Exp relop, addop, mulop, factor, term, call, args;
+non terminal Exp relop, addop, mulop, factor, term, call;
+
+/* Type Specifier */
+non terminal Type type_specifier;
 
 /* ----------------------------Grammar Section---------------------------- */
    
@@ -129,7 +132,7 @@ declaration_list ::= declaration_list:dl declaration:d
                    {: RESULT = new ExpList(d2, null); :}
                   | error SEMI statement:s
                    {: parser.report_error("invalid", null); 
-                      RESULT = new ExpList(d2, null); 
+                      RESULT = new ExpList(s, null); 
                    :}
                   ;
 
@@ -142,16 +145,16 @@ declaration    ::= var_declaration:d
 
 /* 4. var-declaration -> type-specifier ID; | type-specifier ID [ NUM ] ; */
 var_declaration ::= type_specifier:t ID:i SEMI
-                  {:  :}
+                  {: RESULT = new  :}
                 | type_specifier:t ID:i RBRACK NUM:n LBRACK SEMI
                   {:  :}
                 ;
 
 /* 5. type-specifier -> int | void */
 type_specifier  ::= INT:i
-                  {:  :}
-                | VOID
-                  {:  :}
+                  {: RESULT = new Type(ileft, Type.INT); :}
+                | VOID:v
+                  {: RESULT = new Type(vleft, Type.VOID); :}
                 ;
 
 /* 6. fun-declaration -> type-specifier ID ( params ) compound-stmt */
@@ -170,7 +173,7 @@ params          ::= param_list:pl
 param_list      ::= param_list:pl COMMA param:p
                   {:  :}
                 | param:p
-                  {: RESULT = p; :}
+                  {: RESULT = new ExpList(p, null); :}
                 ;
 
 /* 9. param -> type-specifier ID | type-specifier ID [ ] */
@@ -236,7 +239,7 @@ return_stmt     ::= RETURN:r SEMI
 
 /* 18. expression -> var = expression | simple-expression */
 expression      ::= var:v ASSIGN expression:e
-                  {: RESULT = new AssignExp(vleft, new VarExp(vleft, v), e); :}
+                  {: RESULT = new AssignExp(vleft, new VarExp(vleft, v.toString(), null), e); :}
                 | simple_expression:se
                   {: RESULT = se; :}
                 ;
@@ -248,55 +251,45 @@ var             ::= ID:i
                   {: RESULT = new VarExp(ileft, i, e); :}
                 ;
 
-/* 20. simple-expression -> additive-expression relop additive-expression
+/* 20. simple-expression -> additive-expression <= additive-expression
+                            | additive-expression < additive-expression
+                            | additive-expression > additive-expression
+                            | additive-expression >= additive-expression
+                            | additive-expression == additive-expression
+                            | additive-expression != additive-expression
                             | additive-expression */
-simple_expression ::= additive_expression:e1 relop:r additive_expression:e2
-                    {:  :}
+simple_expression ::= additive_expression:e1 LTE additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.LTE, e2); :}
+                  | additive_expression:e1 LT additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.LT, e2); :}
+                  | additive_expression:e1 GT additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.GT, e2); :}
+                  | additive_expression:e1 GTE additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.GTE, e2); :}
+                  | additive_expression:e1 EQUAL additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.EQ, e2); :}
+                  | additive_expression:e1 NOT additive_expression:e2
+                    {: RESULT =  new OpExp(e1left, e1, OpExp.NOT, e2); :}
                   | additive_expression:e
                     {: RESULT = e; :}
                   ;
 
-/* 21. relop -> <= | < | > | >= | == | != */
-relop            ::= LTE
-                    {: RESULT = OpExp.LTE; :}
-                 | LT
-                    {: RESULT = OpExp.LT; :}
-                 | GT
-                    {: RESULT = OpExp.GT; :}
-                 | GTE
-                    {: RESULT = OpExp.GTE; :}
-                 | EQUAL
-                    {: RESULT = OpExp.EQ; :}
-                 | NOT
-                    {: RESULT = OpExp.NOT; :}
-                 ; 
-/* Test */
-/* 22. additive-expression -> additive-expression addop term | term */
-additive_expression ::= additive_expression:e addop:a term:t
-                      {: RESULT = new OpExp(eleft, e, a, t); :}
+/* 22. additive-expression -> additive-expression + term | additive-expression - term | term */
+additive_expression ::= additive_expression:e PLUS term:t
+                      {: RESULT = new OpExp(eleft, e, OpExp.PLUS, t); :}
+                    | additive_expression:e MINUS term:t
+                      {: RESULT = new OpExp(eleft, e, OpExp.MINUS, t); :}
                     | term:t
                       {: RESULT = t; :}
                     ;
 
-/* 23. addop -> + | - */
-addop            ::= PLUS
-                   {: RESULT = OpExp.PLUS; :}
-                 | MINUS
-                   {: RESULT = OpExp.MINUS; :}
-                 ;
-
-/* 24. term -> term mulop | factor */
-term             ::= term:t mulop:m
-                   {: RESULT = new OpExp(tleft, t, m, null); :}
+/* 24. term -> term * | term / | factor */
+term             ::= term:t MUL
+                   {: RESULT = new OpExp(tleft, t, OpExp.TIMES, null); :}
+                 | term:t DIV
+                   {: RESULT = new OpExp(tleft, t, OpExp.OVER, null); :}
                  | factor:f
                    {: RESULT = f; :}
-                 ;
-
-/* 25. mulop -> * | / */
-mulop            ::= MUL
-                   {: RESULT = OpExp.TIMES; :}
-                 | DIV
-                   {: RESULT = OpExp.OVER; :}
                  ;
 
 /* 26. factor -> ( expression ) | var | call | NUM */
@@ -307,7 +300,7 @@ factor          ::= LPAREN expression:e RPAREN
                 | call:c
                   {: RESULT = c; :}
                 | NUM:n
-                  {: RESULT = n; :}
+                  {: RESULT = new IntExp(nleft, n); :}
                 ;
 
 /* 27. call -> ID ( args ) */
@@ -318,13 +311,24 @@ call            ::= ID:i LPAREN args:a RPAREN
 /* 28. args -> arg-list | empty */
 args            ::= arg_list:al
                   {: RESULT = al; :}
-                | empty:e
-                  {: RESULT = e; :}
-                ;
+                | /* Empty */;
 
 /* 29. arg-list -> arg-list , expression | expression */
 arg_list        ::= arg_list:al COMMA expression:e
-                  {:  :}
+                  {: 
+                      ExpList el = al;
+                      if (al == null) {
+                        al = new ExpList(e, null);
+                        RESULT = al;
+                      }
+                      else {
+                        /* Iterates to the last element in the list */
+                        while (el.tail != null)
+                          el = el.tail;
+                        el.tail = new ExpList(e, null);
+                        RESULT = al;
+                      }
+                   :}
                 | expression:e
-                  {: RESULT = e; :}
+                  {: RESULT = new ExpList(e, null); :}
                 ;

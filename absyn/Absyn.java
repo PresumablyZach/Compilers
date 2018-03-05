@@ -25,8 +25,6 @@ abstract public class Absyn {
       showTree( (IntExp)tree, spaces );
     else if( tree instanceof OpExp )
       showTree( (OpExp)tree, spaces );
-    else if( tree instanceof ReadExp )
-      showTree( (ReadExp)tree, spaces );
     else if( tree instanceof IterExp )
       showTree( (IterExp)tree, spaces );
     else if( tree instanceof VarExp )
@@ -101,12 +99,6 @@ abstract public class Absyn {
     spaces += SPACES;
     showTree( tree.left, spaces );
     showTree( tree.right, spaces ); 
-  }
-
-  static public void showTree( ReadExp tree, int spaces ) {
-    indent( spaces );
-    System.out.println( "ReadExp:" );
-    showTree( tree.input, spaces + SPACES );  
   }
 
   static public void showTree( IterExp tree, int spaces ) {

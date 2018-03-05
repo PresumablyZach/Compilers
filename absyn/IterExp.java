@@ -1,9 +1,9 @@
 package absyn;
 
 public class IterExp extends Exp {
-  public ExpList exps;
+  public Exp exps;
   public Exp test;
-  public IterExp( int pos, ExpList exps, Exp test ) {
+  public IterExp( int pos, Exp exps, Exp test ) {
     this.pos = pos;
     this.exps = exps;
     this.test = test;
