@@ -20,3 +20,6 @@ parser.java: cMinus.cup
 
 clean:
 	rm -f parser.java Lexer.java sym.java *.class absyn/*.class *~
+
+test:
+	java $(CLASSPATH) Main 1.cm

@@ -87,6 +87,8 @@ number = {digit}+
    between A and Z, a and z, zero and nine, or an underscore. */
 letter = [a-zA-Z]
 identifier = {letter}+
+
+%state COMMENT
    
 %%
 /* ------------------------Lexical Rules Section---------------------- */
@@ -96,36 +98,38 @@ identifier = {letter}+
    code, that will be executed when the scanner matches the associated
    regular expression. */
 
-"else"             { return symbol(sym.ELSE); }
-"if"               { return symbol(sym.IF); }
-"int"              { return symbol(sym.INT); }
-"return"           { return symbol(sym.RETURN); }
-"void"             { return symbol(sym.VOID); }
-"while"            { return symbol(sym.WHILE); }
+<YYINITIAL>"else"             { return symbol(sym.ELSE); }
+<YYINITIAL>"if"               { return symbol(sym.IF); }
+<YYINITIAL>"int"              { return symbol(sym.INT); }
+<YYINITIAL>"return"           { return symbol(sym.RETURN); }
+<YYINITIAL>"void"             { return symbol(sym.VOID); }
+<YYINITIAL>"while"            { return symbol(sym.WHILE); }
 /* ------------------------------------------------------------------- */
-"+"                { return symbol(sym.PLUS); }
-"-"                { return symbol(sym.MINUS); }
-"*"                { return symbol(sym.MUL); }
-"/"                { return symbol(sym.DIV); }
-"<"                { return symbol(sym.LT); }
-">"                { return symbol(sym.GT); }
-"<="               { return symbol(sym.LTE); }
-">="               { return symbol(sym.GTE); }
-"=="               { return symbol(sym.EQUAL); }
-"!="               { return symbol(sym.NOT); }
-"="                { return symbol(sym.ASSIGN); }
+<YYINITIAL>"+"                { return symbol(sym.PLUS); }
+<YYINITIAL>"-"                { return symbol(sym.MINUS); }
+<YYINITIAL>"*"                { return symbol(sym.MUL); }
+<YYINITIAL>"/"                { return symbol(sym.DIV); }
+<YYINITIAL>"<"                { return symbol(sym.LT); }
+<YYINITIAL>">"                { return symbol(sym.GT); }
+<YYINITIAL>"<="               { return symbol(sym.LTE); }
+<YYINITIAL>">="               { return symbol(sym.GTE); }
+<YYINITIAL>"=="               { return symbol(sym.EQUAL); }
+<YYINITIAL>"!="               { return symbol(sym.NOT); }
+<YYINITIAL>"="                { return symbol(sym.ASSIGN); }
 /* ------------------------------------------------------------------- */
-";"                { return symbol(sym.SEMI); }
-","                { return symbol(sym.COMMA); }
-"("                { return symbol(sym.LPAREN); }
-")"                { return symbol(sym.RPAREN); }
-"["                { return symbol(sym.LBRACK); }
-"]"                { return symbol(sym.RBRACK); }
-"{"                { return symbol(sym.LBRACE); }
-"}"                { return symbol(sym.RBRACE); }
+<YYINITIAL>";"                { return symbol(sym.SEMI); }
+<YYINITIAL>","                { return symbol(sym.COMMA); }
+<YYINITIAL>"("                { return symbol(sym.LPAREN); }
+<YYINITIAL>")"                { return symbol(sym.RPAREN); }
+<YYINITIAL>"["                { return symbol(sym.LBRACK); }
+<YYINITIAL>"]"                { return symbol(sym.RBRACK); }
+<YYINITIAL>"{"                { return symbol(sym.LBRACE); }
+<YYINITIAL>"}"                { return symbol(sym.RBRACE); }
 /* ------------------------------------------------------------------- */
-{identifier}       { return symbol(sym.ID, yytext()); }
-{number}           { return symbol(sym.NUM, yytext()); }
-{WhiteSpace}*      { /* skip whitespace */ }   
-"/*".*"*/"         { /* skip comments */ }
-.                  { return symbol(sym.ERROR); }
+<YYINITIAL>{identifier}       { return symbol(sym.ID, yytext()); }
+<YYINITIAL>{number}           { return symbol(sym.NUM, yytext()); }
+<YYINITIAL>{WhiteSpace}*      { /* skip whitespace */ }   
+<YYINITIAL>"/*"               { yybegin(COMMENT); }
+<COMMENT>"*/"                 { yybegin(YYINITIAL); }
+<COMMENT>[^]|\n                 { /* Skip Comments */ }
+<YYINITIAL>.                             { return symbol(sym.ERROR); }

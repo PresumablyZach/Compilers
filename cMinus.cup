@@ -82,13 +82,17 @@ terminal ERROR;
    
 /*non terminal Exp program1;*/
 /* Lists */
-non terminal ExpList program, declaration_list, params, param_list, statement_list, arg_list, args;
+non terminal ExpList program, declaration_list, statement_list, arg_list, args;
+non terminal DecExpList param_list, local_declarations;
+non terminal Params params;
 
 /* Declarations */
-non terminal Exp declaration, var_declaration, fun_declaration, local_declarations;
+non terminal Exp declaration, fun_declaration;
+non terminal DecExp var_declaration;
 
 /* Statements */
-non terminal Exp param, empty, statement, expression_stmt, compound_stmt, selection_stmt;
+non terminal Exp empty, statement, expression_stmt, compound_stmt, selection_stmt;
+non terminal DecExp param;
 
 /* Expressions */
 non terminal Exp iteration_stmt, return_stmt, expression, simple_expression, additive_expression, var;
@@ -145,9 +149,9 @@ declaration    ::= var_declaration:d
 
 /* 4. var-declaration -> type-specifier ID; | type-specifier ID [ NUM ] ; */
 var_declaration ::= type_specifier:t ID:i SEMI
-                  {: RESULT = new  :}
+                  {: RESULT = new DecExp(tleft, t, i); :}
                 | type_specifier:t ID:i RBRACK NUM:n LBRACK SEMI
-                  {:  :}
+                  {: RESULT = new DecExp(tleft, t, i, Integer.parseInt(n)); :}
                 ;
 
 /* 5. type-specifier -> int | void */
@@ -159,28 +163,34 @@ type_specifier  ::= INT:i
 
 /* 6. fun-declaration -> type-specifier ID ( params ) compound-stmt */
 fun_declaration ::= type_specifier:t ID:i LPAREN params:p RPAREN compound_stmt:c
-                  {:  :}
+                  {: RESULT = new DecFun(tleft, t, i, p, c); :}
                 ;
 
 /* 7. params -> param-list | void */
 params          ::= param_list:pl
-                  {:  :}
-                | VOID
-                  {:  :}
+                  {: RESULT = new Params(plleft, pl); :}
+                | VOID:v
+                  {: RESULT = new Params(vleft, null); :}
                 ;
 
 /* 8. param-list -> param-list , param | param */
 param_list      ::= param_list:pl COMMA param:p
-                  {:  :}
+                  {: 
+                      DecExpList d = pl;
+                      while (d.tail != null)
+                        d = d.tail;
+                      d.tail = new DecExpList(p, null);
+                      RESULT = pl;
+                  :}
                 | param:p
-                  {: RESULT = new ExpList(p, null); :}
+                  {: RESULT = new DecExpList(p, null); :}
                 ;
 
 /* 9. param -> type-specifier ID | type-specifier ID [ ] */
-param           ::= type_specifier:t ID
-                  {:  :}
-                | type_specifier:t ID RBRACK LBRACK
-                  {:  :}
+param           ::= type_specifier:t ID:i
+                  {: RESULT = new DecExp(tleft, t, i); :}
+                | type_specifier:t ID:i RBRACK LBRACK
+                  {: RESULT = new DecExp(tleft, t, i, -1); :}
                 ;
 
 /* 10. compound-stmt -> { local-declarations statement-list } */
@@ -190,12 +200,24 @@ compound_stmt   ::= LBRACE local_declarations:ld statement_list:sl RBRACE
 
 /* 11. local-declarations -> local-declarations var-declarations | empty */
 local_declarations ::= local_declarations:ld var_declaration:vd
-                     {:  :}
+                     {:
+                        DecExpList e = ld;
+                        while( e.tail != null )
+                          e = e.tail;
+                        e.tail = new DecExpList(vd, null);
+                        RESULT = ld;
+                     :}
                    | /* Empty */;
 
 /* 12. statement-list -> statement-list statement | empty */
 statement_list  ::= statement_list:sl statement:s
-                  {:  :}
+                  {: 
+                      ExpList e = sl;
+                      while( e.tail != null )
+                        e = e.tail;
+                      e.tail = new ExpList(s, null);
+                      RESULT = sl;
+                  :}
                 | /* Empty */;
 
 /* 13. statement -> expression-stmt | compound-stmt | selection-stmt

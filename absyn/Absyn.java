@@ -33,7 +33,7 @@ abstract public class Absyn {
       showTree( (ReturnExp)tree, spaces );
     else {
       indent( spaces );
-      System.out.println( "Illegal expression at line " + tree.pos  );
+      System.out.println( "Illegal expression " );
     }
   }
 
@@ -51,7 +51,8 @@ abstract public class Absyn {
     spaces += SPACES;
     showTree( tree.test, spaces );
     showTree( tree.thenpart, spaces );
-    showTree( tree.elsepart, spaces );
+    if (tree.elsepart != null)
+      showTree( tree.elsepart, spaces );
   }
 
   static public void showTree( IntExp tree, int spaces ) {
@@ -105,8 +106,8 @@ abstract public class Absyn {
     indent( spaces );
     System.out.println( "IterExp:" );
     spaces += SPACES;
-    showTree( tree.exps, spaces );
-    showTree( tree.test, spaces ); 
+    showTree( tree.test, spaces );
+    showTree( tree.exps, spaces ); 
   }
 
   static public void showTree( VarExp tree, int spaces ) {
@@ -117,7 +118,12 @@ abstract public class Absyn {
   static public void showTree( ReturnExp tree, int spaces ) {
     indent( spaces );
     System.out.println( "ReturnExp:" );
-    showTree( tree.output, spaces + SPACES ); 
+    if (tree.output != null)
+      showTree( tree.output, spaces + SPACES );
+    else {
+      indent ( spaces );
+      System.out.println("No Return Value Found!");
+    }
   }
 
 }
