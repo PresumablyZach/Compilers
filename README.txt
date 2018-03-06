@@ -1,15 +1,19 @@
-A JFlex+Cup implementation for the Tiny language.
+Created By: Adam Bollinger and Zach Gyorffy
 
-To build the parser, type "make" in the current directory, which will 
-generate parser.java and Lexer.java 
+To build the compiler, type "make" in the current directory, which will 
+generate files such as parser.java and Lexer.java 
 
-  To test source code like "1.cm", type 
+To test source code like "1.cm", type 
 
     "java -classpath /usr/share/java/cup.jar:. Main 1.cm" 
 
 and the syntax tree will be displayed on the screen.
 
-  To rebuild the parser, type "make clean" and type "make" again.
+To rebuild the parser, type "make clean" and type "make" again.
+
+
+
+To build the code, we used the sample code Prof. Song provided as a starting point and as a reference. 
 
 
 
