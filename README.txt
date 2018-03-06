@@ -16,16 +16,19 @@ and the syntax tree will be displayed on the screen.
 The test programs included are:
 
 1.cm
-	No errors
+	No errors 
 
 2.cm
-	Lexical Errors
+	One Lexical Error
 
 3.cm
-	Syntax Errors
+	Two Syntax Errors
 
 4.cm
-	Both Lexican and Syntax Errors
+	One Lexical and Two Syntax Errors
 
 5.cm
-	Anything goes	
+	Many Errors, both Syntax and Lexical
+
+6.cm
+	Rick Astley	

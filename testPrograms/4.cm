@@ -2,8 +2,21 @@
     Created By: Adam Bollinger and Zach Gyorffy
     File Name: 4.cm
     
-    Errors Contained: Both Syntax and Lexical Errors
+    Errors Contained: Two Syntax Errors and One Lexical Error
     
     Testing: Tests the error handling of 
              both syntax and lexical errors
 **********************************************/
+
+int €;
+int x;
+
+int errFun(int num1, int num2) {
+    return x;
+}
+
+int main(){
+    int y = error;
+
+    return errFun(x, y);
+}
