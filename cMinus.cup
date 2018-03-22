@@ -168,9 +168,15 @@ declaration    ::= var_declaration:d
 
 /* 4. var-declaration -> type-specifier ID; | type-specifier ID [ NUM ] ; */
 var_declaration ::= type_specifier:t ID:i SEMI
-                  {: RESULT = new DecVar(tleft, t, i, 0); :}
+                  {:
+                    if (t.type.equals("VOID")) { }
+                    else RESULT = new DecVar(tleft, t, i, 0);
+                  :}
                 | type_specifier:t ID:i LBRACK NUM:n RBRACK SEMI
-                  {: RESULT = new DecVar(tleft, t, i, Integer.parseInt(n)); :}
+                  {:
+                    if (t.type.equals("VOID")) { }
+                    else RESULT = new DecVar(tleft, t, i, Integer.parseInt(n)); 
+                  :}
                 ;
 
 /* 5. type-specifier -> int | void */
