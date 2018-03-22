@@ -250,6 +250,13 @@ public class SymbolTable {
         this.leaveScope();
     }
 
+    /* Show table for Function Parameters */
+    public void showTable(Params tree, int spaces) {
+        if (!tree.isVoid) {
+            showTable(tree.pList, spaces);
+        }
+    }
+
     /* Show table for Parameters */
     public void showTable(Param tree, int spaces) {
         if (tree.isArray) {
