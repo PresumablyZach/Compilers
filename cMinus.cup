@@ -88,7 +88,8 @@ non terminal DecVar  var_declaration;
 
 /* Parameters */
 non terminal Param     param;
-non terminal ParamList param_list, params;
+non terminal Params    params;
+non terminal ParamList param_list;
 
 /* Statements */
 non terminal Stmt statement;
@@ -180,7 +181,7 @@ type_specifier  ::= INT:i
                 ;
 
 /* 6. fun-declaration -> type-specifier ID ( params ) compound-stmt */
-fun_declaration ::= type_specifier:t ID:i LPAREN param_list:p RPAREN compound_stmt:c
+fun_declaration ::= type_specifier:t ID:i LPAREN params:p RPAREN compound_stmt:c
                   {: RESULT = new DecFun(tleft, t, i, p, c); :}
                 ;
 
