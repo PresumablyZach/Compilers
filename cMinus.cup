@@ -1,0 +1,401 @@
+/*
+  Created by: Adam Bollinger and Zach Gyorffy
+  File Name: cMinus.cup
+  To Build: java java_cup.Main < cMinus.cup
+*/
+
+
+/* ----------------------Preliminary Declarations Section--------------------*/
+
+/* Import the class java_cup.runtime.*  */
+//import java_cup.runtime.*;
+import absyn.*;
+import symb.*;
+import java.util.*;
+
+/* Parser code to change the way the parser reports errors (include
+   line and column number of the error). */
+parser code {:
+    public String filename;
+    public List<String> userArgs;
+    public boolean hasErrors = false;
+
+    /* Constructor for the parser, takes in the filename, desired arguments, and the scanner */
+    public parser (String filename, List<String> userArgs, java_cup.runtime.Scanner s) {
+        super(s);
+        this.filename = filename;
+        this.userArgs = userArgs;
+    }
+
+    public void report_error(String message, Object info) {
+        this.hasErrors = true;
+        /* Create a StringBuffer called 'm' with the string 'Error' in it. */
+        StringBuffer m = new StringBuffer("Error");
+
+        /* Check if the information passed to the method is the same
+           type as the type java_cup.runtime.Symbol. */
+        if (info instanceof java_cup.runtime.Symbol) {
+            /* Declare a java_cup.runtime.Symbol object 's' with the
+               information in the object info that is being typecasted
+               as a java_cup.runtime.Symbol object. */
+            java_cup.runtime.Symbol s = ((java_cup.runtime.Symbol) info);
+
+            /* Check if the line number in the input is greater or
+               equal to zero. */
+            if (s.left >= 0) {
+                /* Add to the end of the StringBuffer error message
+                   the line number of the error in the input. */
+                m.append(" in line " + (s.left + 1));
+                /* Check if the column number in the input is greater
+                   or equal to zero. */
+                if (s.right >= 0)
+                    /* Add to the end of the StringBuffer error message
+                       the column number of the error in the input. */
+                    m.append(", column " + (s.right + 1));
+            }
+        }
+
+        /* Add to the end of the StringBuffer error message created in
+           this method the message that was passed into this method. */
+        m.append(" : " + message);
+
+        /* Print the contents of the StringBuffer 'm', which contains
+           an error message, out on a line. */
+        System.err.println(m);
+    }
+
+    public void report_fatal_error(String message, Object info) {
+        report_error(message, info);
+        System.exit(1);
+    }
+:};
+
+
+/* ------------Declaration of Terminals and Non Terminals Section----------- */
+
+terminal ELSE, IF, INT, RETURN, VOID, WHILE;
+terminal PLUS, MINUS, MUL, DIV, LT, LTE, GT, GTE, EQUAL, NOT, ASSIGN;
+terminal SEMI, COMMA, LPAREN, RPAREN, LBRACK, RBRACK, LBRACE, RBRACE;
+terminal String ID, NUM;
+terminal ERROR;
+
+/* Declarations */
+non terminal Dec     declaration;
+non terminal DecFun  fun_declaration;
+non terminal DecList program, declaration_list;
+non terminal DecLoc  local_declarations;
+non terminal DecVar  var_declaration;
+
+/* Parameters */
+non terminal Param     param;
+non terminal ParamList param_list, params;
+
+/* Statements */
+non terminal Stmt statement;
+non terminal StmtComp compound_stmt;
+non terminal StmtExp expression_stmt;
+non terminal StmtIter iteration_stmt;
+non terminal StmtRet return_stmt;
+non terminal StmtSel selection_stmt;
+non terminal StmtList statement_list;
+
+/* Expressions */
+non terminal Exp expression, simple_expression, additive_expression;
+non terminal ExpCall call;
+non terminal ExpVar var;
+
+/* Misc */
+non terminal Type type_specifier;
+non terminal Exp factor, term;
+non terminal ExpList arg_list, args;
+
+/* precedence */
+precedence nonassoc RETURN;
+precedence right ASSIGN;
+precedence left EQUAL, NOT, GT, LT, GTE, LTE;
+precedence left PLUS, MINUS;
+precedence left MUL, DIV;
+precedence left ELSE;
+
+/* ----------------------------Grammar Section---------------------------- */
+
+start with program;
+
+/* 1. program -> declaration-list */
+program	      ::= declaration_list:d
+                {:
+                  RESULT = d;
+                  if (this.parser.hasErrors == false) {
+                      for (String s : this.parser.userArgs) {
+                          /* Print Absyn */
+                          if (s.equals("-a")) {
+                              System.out.println("\n\nThe Abstract Syntax Tree Is:");
+                              Absyn.showTree(RESULT, 0);
+                          }
+                          /* Print Symbol Tables */
+                          if (s.equals("-s")) {
+                              System.out.println("\n\nThe Symbol Table Is:");
+                              new SymbolTable().showTable(RESULT, 0);
+                          }
+                      }
+                  }
+                :}
+              ;
+
+/* 2. declaration-list -> declaration-list declaration | declaration */
+declaration_list ::= declaration_list:dl declaration:d
+                   {: DecList t = dl;
+                      while( t.tail != null )
+                        t = t.tail;
+                      t.tail = new DecList(d, null);
+                      RESULT = dl;
+                   :}
+                  | declaration:d2
+                   {: RESULT = new DecList(d2, null); :}
+                  | error SEMI declaration:d
+                   {: parser.report_error("invalid", null);
+                      RESULT = new DecList(d, null);
+                   :}
+                  ;
+
+/* 3. declaration -> var-declaration | fun-declaration */
+declaration    ::= var_declaration:d
+                 {: RESULT = d; :}
+               | fun_declaration:d
+                 {: RESULT = d; :}
+               ;
+
+/* 4. var-declaration -> type-specifier ID; | type-specifier ID [ NUM ] ; */
+var_declaration ::= type_specifier:t ID:i SEMI
+                  {: RESULT = new DecVar(tleft, t, i, 0); :}
+                | type_specifier:t ID:i LBRACK NUM:n RBRACK SEMI
+                  {: RESULT = new DecVar(tleft, t, i, Integer.parseInt(n)); :}
+                ;
+
+/* 5. type-specifier -> int | void */
+type_specifier  ::= INT:i
+                  {: RESULT = new Type(ileft, "INT"); :}
+                | VOID:v
+                  {: RESULT = new Type(vleft, "VOID"); :}
+                ;
+
+/* 6. fun-declaration -> type-specifier ID ( params ) compound-stmt */
+fun_declaration ::= type_specifier:t ID:i LPAREN param_list:p RPAREN compound_stmt:c
+                  {: RESULT = new DecFun(tleft, t, i, p, c); :}
+                ;
+
+/* 7. param-list -> param-list , param | param */
+param_list      ::= param_list:p COMMA param:p1
+                  {:
+                      ParamList d = p;
+                      while (d.tail != null)
+                        d = d.tail;
+                      d.tail = new ParamList(p1, null);
+                      RESULT = p;
+                  :}
+                | param:p
+                  {: RESULT = new ParamList(p, null); :}
+                ;
+
+/* 8. param -> type-specifier ID | type-specifier ID [ ] */
+param           ::= type_specifier:t ID:i
+                  {: RESULT = new Param(tleft, t, i, false); :}
+                | type_specifier:t ID:i LBRACK RBRACK
+                  {: RESULT = new Param(tleft, t, i, true); :}
+                ;
+
+/* 9. compound-stmt -> { local-declarations statement-list } */
+compound_stmt   ::= LBRACE:b local_declarations:ld statement_list:sl RBRACE
+                  {: RESULT = new StmtComp(bleft, ld, sl); :}
+                ;
+
+/* 10. local-declarations -> local-declarations var-declarations | empty */
+local_declarations ::= local_declarations:ld var_declaration:vd
+                     {:
+                        DecLoc dl = ld;
+                        if (ld == null) {
+                          dl = new DecLoc(vd, null);
+                          RESULT = ld;
+                        }
+                        else {
+                          while (dl.tail != null)
+                            dl = dl.tail;
+                          dl.tail = new DecLoc(vd, null);
+                          RESULT = ld;
+                        }
+                     :}
+                   | /* Empty */;
+
+/* 11. statement-list -> statement-list statement | empty */
+statement_list  ::= statement_list:sl statement:s
+                  {:
+                      StmtList temp = sl;
+                      if (sl == null) {
+                        sl = new StmtList(s, null);
+                        RESULT = sl;
+                      }
+                      else {
+                        while( temp.tail != null )
+                          temp = temp.tail;
+                        temp.tail = new StmtList(s, null);
+                        RESULT = sl;
+                      }
+                  :}
+                | /* Empty */;
+
+/* 12. statement -> expression-stmt | compound-stmt | selection-stmt
+                    | iteration-stmt | return-stmt */
+statement       ::= expression_stmt:es
+                  {: RESULT = es; :}
+                | compound_stmt:cs
+                  {: RESULT = cs; :}
+                | selection_stmt:ss
+                  {: RESULT = ss; :}
+                | iteration_stmt:is
+                  {: RESULT = is; :}
+                | return_stmt:rs
+                  {: RESULT = rs; :}
+                ;
+
+/* 13. expression-stmt -> expression ; | ; */
+expression_stmt ::= expression:e SEMI
+                  {: RESULT = new StmtExp(eleft, e); :}
+                | SEMI ;
+
+/* 14. selection-stmt -> if ( expression ) statement
+                         | if ( expression ) statement else statement */
+selection_stmt  ::= IF:i LPAREN expression:e RPAREN statement:s
+                  {: RESULT = new StmtSel(ileft, e, s, null); :}
+                | IF:i LPAREN expression:e RPAREN statement:s1 ELSE statement:s2
+                  {: RESULT = new StmtSel(ileft, e, s1, s2); :}
+                ;
+
+/* 15. iteration-stmt -> while ( expression ) statement */
+iteration_stmt  ::= WHILE:w LPAREN expression:e RPAREN statement:s
+                  {: RESULT = new StmtIter(wleft, e, s); :}
+                ;
+
+/* 16. return-stmt -> return ; | return expression ; */
+return_stmt     ::= RETURN:r SEMI
+                  {: RESULT = new StmtRet(rleft, null); :}
+                | RETURN:r expression:e SEMI
+                  {: RESULT = new StmtRet(rleft, e); :}
+                ;
+
+/* 17. expression -> var = expression | expression PLUS,MINUS,...,LT,GT expression | factor  */
+expression      ::= var:v ASSIGN expression:e
+                  {: RESULT = new ExpAssign(vleft, new ExpVar(vleft, v.id, null), e); :}
+                | expression:e1 LTE expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.LTE, e2); :}
+                | expression:e1 LT expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.LT, e2); :}
+                | expression:e1 GT expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.GT, e2); :}
+                | expression:e1 GTE expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.GTE, e2); :}
+                | expression:e1 EQUAL expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.EQUAL, e2); :}
+                | expression:e1 NOT expression:e2
+                  {: RESULT = new RelOp(e1left, e1, RelOp.NOT, e2); :}
+                | expression:e1 PLUS expression:e2
+                  {: RESULT = new AddOp(e1left, e1, AddOp.PLUS, e2); :}
+                | expression:e1 MINUS expression:e2
+                  {: RESULT = new AddOp(e1left, e1, AddOp.MINUS, e2); :}
+                | expression:e1 MUL expression:e2
+                  {: RESULT = new MulOp(e1left, e1, MulOp.MUL, e2); :}
+                | expression:e1 DIV expression:e2
+                  {: RESULT = new MulOp(e1left, e1, MulOp.DIV, e2); :}
+                | factor:f
+                  {: RESULT = f; :}
+                ;
+
+
+/* 18. var -> ID | ID [ expression ] */
+var             ::= ID:i
+                  {: RESULT = new ExpVar(ileft, i, null); :}
+                | ID:i LBRACK expression:e RBRACK
+                  {: RESULT = new ExpVar(ileft, i, e); :}
+                ;
+
+/* 19. simple-expression -> additive-expression <= additive-expression
+                            | additive-expression < additive-expression
+                            | additive-expression > additive-expression
+                            | additive-expression >= additive-expression
+                            | additive-expression == additive-expression
+                            | additive-expression != additive-expression
+                            | additive-expression */
+/*simple_expression ::= additive_expression:e1 LTE additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.LTE, e2); :}
+                  | additive_expression:e1 LT additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.LT, e2); :}
+                  | additive_expression:e1 GT additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.GT, e2); :}
+                  | additive_expression:e1 GTE additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.GTE, e2); :}
+                  | additive_expression:e1 EQUAL additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.EQUAL, e2); :}
+                  | additive_expression:e1 NOT additive_expression:e2
+                    {: RESULT =  new RelOp(e1left, e1, RelOp.NOT, e2); :}
+                  | additive_expression:e
+                    {: RESULT = e; :}
+                  ;*/
+
+/* 20. additive-expression -> additive-expression + term | additive-expression - term | term */
+/*additive_expression ::= additive_expression:e PLUS term:t
+                      {: RESULT = new AddOp(eleft, e, AddOp.PLUS, t); :}
+                    | additive_expression:e MINUS term:t
+                      {: RESULT = new AddOp(eleft, e, AddOp.MINUS, t); :}
+                    | term:t
+                      {: RESULT = t; :}
+                    ;*/
+
+/* 21. term -> term * | term / | factor */
+/*term             ::= term:t MUL
+                   {: RESULT = new MulOp(tleft, t, MulOp.MUL, null); :}
+                 | term:t DIV
+                   {: RESULT = new MulOp(tleft, t, MulOp.DIV, null); :}
+                 | factor:f
+                   {: RESULT = f; :}
+                 ;*/
+
+/* 22. factor -> ( expression ) | var | call | NUM */
+factor          ::= LPAREN expression:e RPAREN
+                  {: RESULT = e; :}
+                | var:v
+                  {: RESULT = v; :}
+                | call:c
+                  {: RESULT = c; :}
+                | NUM:n
+                  {: RESULT = new ExpNum(nleft, Integer.parseInt(n)); :}
+                ;
+
+/* 23. call -> ID ( args ) */
+call            ::= ID:i LPAREN args:a RPAREN
+                  {: RESULT = new ExpCall(ileft, i, a); :}
+                ;
+
+/* 24. args -> arg-list | empty */
+args            ::= arg_list:al
+                  {: RESULT = al; :}
+                |
+                  {: RESULT = null; :};
+
+/* 25. arg-list -> arg-list , expression | expression */
+arg_list        ::= arg_list:al COMMA expression:e
+                  {:
+                      ExpList el = al;
+                      if (al == null) {
+                        al = new ExpList(e, null);
+                        RESULT = al;
+                      }
+                      else {
+                        /* Iterates to the last element in the list */
+                        while (el.tail != null)
+                          el = el.tail;
+                        el.tail = new ExpList(e, null);
+                        RESULT = al;
+                      }
+                   :}
+                | expression:e
+                  {: RESULT = new ExpList(e, null); :}
+                ;

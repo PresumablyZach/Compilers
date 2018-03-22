@@ -1,0 +1,21 @@
+/**********************************************
+    Created By: Adam Bollinger and Zach Gyorffy
+    File Name: 3.cm
+    
+    Errors Contained: Two Syntax Errors
+    
+    Testing: Tests the error handling of 
+             specifically syntax errors
+**********************************************/
+
+int x = 6;
+
+int errFun(int num1, int num2) {
+    return x;
+}
+
+int main(){
+    int y = error;
+
+    return errFun(x, y);
+}
