@@ -1,25 +1,12 @@
 /**********************************************
     Created By: Adam Bollinger and Zach Gyorffy
     File Name: 5.cm
-    
-    Errors Contained: Many Errors, both Lexial and Syntax
-    
-    Testing:   
+
+    Testing: test condition must be int
 **********************************************/
 
-String error = "Error";
-
-int x = 6;
-
-int y;
-
-int errFun (int a, int b) {
-    a * b == 5;
-}
-
-int main (int argc) {
-    float errSign = £;
-    
-    £ = null;
-     return errFun(5, ¢);
+void main(void) {
+  int x;
+  if( x ) output(foo());
+  if(foo()) output(x. foo());
 }

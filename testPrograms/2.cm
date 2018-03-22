@@ -2,15 +2,10 @@
     Created By: Adam Bollinger and Zach Gyorffy
     File Name: 2.cm
     
-    Errors Contained: One Lexical Error
-    
-    Testing: Tests the error handling of 
-             specifically lexical errors
+    Testing: Match two sides of an assignment
 **********************************************/
 
-int £;
-
-int main(int argc){
-
-    return argc;
+void main(void) {
+  int x;
+  x = foo();
 }
