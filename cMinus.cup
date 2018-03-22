@@ -185,6 +185,12 @@ fun_declaration ::= type_specifier:t ID:i LPAREN params:p RPAREN compound_stmt:c
                   {: RESULT = new DecFun(tleft, t, i, p, c); :}
                 ;
 
+/* 6.5 params -> param_list | void */
+params          ::= param_list:p
+                  {: RESULT = new Params(pleft, p); :}
+                 | VOID:v
+                  {: RESULT = new Params(vleft, null); :};
+
 /* 7. param-list -> param-list , param | param */
 param_list      ::= param_list:p COMMA param:p1
                   {:
@@ -372,8 +378,7 @@ factor          ::= LPAREN expression:e RPAREN
 
 /* 23. call -> ID ( args ) */
 call            ::= ID:i LPAREN args:a RPAREN
-                  {: RESULT = new ExpCall(ileft, i, a); :}
-                ;
+                  {: RESULT = new ExpCall(ileft, i, a); :};
 
 /* 24. args -> arg-list | empty */
 args            ::= arg_list:al

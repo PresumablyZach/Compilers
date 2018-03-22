@@ -21,7 +21,16 @@ public class SymbolTable {
     private int globalOffset = 0;
 
     /* Constructor */
-    public SymbolTable () { this.newScope(); }
+    public SymbolTable () {
+        this.newScope();
+        FuncSymbol input = new FuncSymbol("input", 4, "INT");
+        FuncSymbol output = new FuncSymbol("output", 7, "VOID");
+        output.addParam(new IntSymbol("x", 0));
+        this.addSymbol(input);
+        this.addSymbol(output);
+
+    }
+
     /* Pushes a new scope onto the stack */
     public void newScope() { this.tableList.add(0, new LinkedHashMap<>()); }
 
