@@ -79,7 +79,11 @@ public class SymbolTable {
 
         if (top.get(key) == null) {
           s.setScope(this.tableList.size());
-          if (s.getClass().equals("INT")) s.setAddress(this.currentOffset);
+          if (s.getClass() == IntSymbol.class) s.setAddress(this.currentOffset);
+          else if (s.getClass() == ArraySymbol.class) {
+              this.currentOffset -= (((ArraySymbol)s).getSize() - 1);
+              s.setAddress(this.currentOffset);
+          }
           top.put(key, s);
           if (!s.getType().equals("FUNC"))
             this.currentOffset--;
@@ -233,10 +237,19 @@ public class SymbolTable {
 
     /* Show table for Variable Declarations */
     public void showTable(DecVar tree, int spaces) {
-        Symbol sym = new IntSymbol(tree.id);
-        if (this.addSymbol(sym) == false) {
-            indent(spaces);
-            this.error("Variable redefinition.");
+        if (tree.isArray) {
+            Symbol sym = new ArraySymbol(tree.id, tree.size);
+            if (this.addSymbol(sym) == false) {
+                indent(spaces);
+                this.error("Variable redefinition.");
+            }
+        }
+        else {
+            Symbol sym = new IntSymbol(tree.id);
+            if (this.addSymbol(sym) == false) {
+                indent(spaces);
+                this.error("Variable redefinition.");
+            }
         }
     }
 
