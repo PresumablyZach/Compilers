@@ -1,0 +1,10 @@
+void foo (void) {
+
+}
+
+void main (void) {
+	int x; int y;
+	y = 2;
+	if (x) output(y);
+	if (foo()) output(x);
+}

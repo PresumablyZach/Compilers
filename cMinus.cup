@@ -170,12 +170,12 @@ declaration    ::= var_declaration:d
 var_declaration ::= type_specifier:t ID:i SEMI
                   {:
                     if (t.type.equals("VOID")) { }
-                    else RESULT = new DecVar(tleft, t, i, 0);
+                    else RESULT = new DecVar(tleft, t, i);
                   :}
                 | type_specifier:t ID:i LBRACK NUM:n RBRACK SEMI
                   {:
                     if (t.type.equals("VOID")) { }
-                    else RESULT = new DecVar(tleft, t, i, Integer.parseInt(n)); 
+                    else RESULT = new DecVar(tleft, t, i, Integer.parseInt(n));
                   :}
                 ;
 

@@ -5,7 +5,7 @@ import absyn.*;
 
 public class SymbolTable {
     /* The table stack */
-    private List<HashMap<List<String>, Symbol>> tableList = new ArrayList<>();
+    private Deque<HashMap<List<String>, Symbol>> tableStack = new ArrayDeque<>();
 
     /* Number of spaces to a tab */
     private final static int TAB = 4;
@@ -25,21 +25,25 @@ public class SymbolTable {
         this.newScope();
         FuncSymbol input = new FuncSymbol("input", 4, "INT");
         FuncSymbol output = new FuncSymbol("output", 7, "VOID");
+        ArraySymbol test = new ArraySymbol("test", 5);
+        ArraySymbol test2 = new ArraySymbol("test2", 20, 0);
         output.addParam(new IntSymbol("x", 0));
         this.addSymbol(input);
         this.addSymbol(output);
+        this.addSymbol(test);
+        this.addSymbol(test2);
 
     }
 
     /* Pushes a new scope onto the stack */
-    public void newScope() { this.tableList.add(0, new LinkedHashMap<>()); }
+    public void newScope() { this.tableStack.push(new LinkedHashMap<>()); }
 
     /* Handles indentation */
     static private void indent (int spaces) { for (int i = 0; i < spaces; i++) System.out.print(" "); }
 
     /* Checks specific scopes */
-    public boolean isInGlobalScope () { return this.tableList.size() == 1; }
-    public boolean isInFuncScope () { return this.tableList.size() == 2; }
+    public boolean isInGlobalScope () { return this.tableStack.size() == 1; }
+    public boolean isInFuncScope () { return this.tableStack.size() == 2; }
 
     /* Gets Offsets */
     public int getCurrentOffest () { return this.currentOffset; }
@@ -50,20 +54,17 @@ public class SymbolTable {
 
     /* Pops the current scope from the table stack */
     public void leaveScope() {
-        if (this.tableList.size() <= 1)
+        if (this.tableStack.size() <= 1)
             return;
 
-        this.currentOffset += this.tableList.get(0).size();
-        this.tableList.remove(0);
+        this.currentOffset += this.tableStack.peek().size();
+        this.tableStack.pop();
 
     }
 
     /* Add a symbol to the stack */
     public boolean addSymbol (Symbol s) {
-        List<String> key;
-        HashMap<List<String>, Symbol> top;
-
-        if (s.getType().equals("FUNC") && this.tableList.size() != 1) {
+        if (s.getType().equals("FUNC") && this.tableStack.size() != 1) {
             return false;
         }
         if (s.getType().equals("FUNC")) {
@@ -71,15 +72,19 @@ public class SymbolTable {
             this.currentOffset = 0;
         }
 
-        key = Arrays.asList(s.getName(), s.getType());
-        top = this.tableList.get(0);
+        List<String> key = Arrays.asList(s.getName(), s.getType());
+        HashMap<List<String>, Symbol> top = this.tableStack.peek();
 
         if (top == null)
             throw new RuntimeException();
 
         if (top.get(key) == null) {
-          s.setScope(this.tableList.size());
-          if (s.getClass() == IntSymbol.class) s.setAddress(this.currentOffset);
+          s.setScope(this.tableStack.size());
+          if (s.isGlobal()) {
+              s.setAddress(this.globalOffset);
+              this.globalOffset--;
+          }
+          else if (s.getClass() == IntSymbol.class) s.setAddress(this.currentOffset);
           else if (s.getClass() == ArraySymbol.class) {
               this.currentOffset -= (((ArraySymbol)s).getSize() - 1);
               s.setAddress(this.currentOffset);
@@ -91,7 +96,6 @@ public class SymbolTable {
         else {
             return false;
         }
-
         return true;
     }
 
@@ -99,7 +103,7 @@ public class SymbolTable {
     public Symbol getMatchingSymbol (Symbol s) throws SymbolException {
         List<String> key = Arrays.asList(s.getName(), s.getType());
 
-        for (HashMap<List<String>, Symbol> t : this.tableList) {
+        for (HashMap<List<String>, Symbol> t : this.tableStack) {
             if (t.get(key) != null) {
                 try {
                     sameType(t.get(key), s);
@@ -119,7 +123,10 @@ public class SymbolTable {
             throw new SymbolException("Use of undeclared variable!");
 
         if (dec.getType().equals("INT") && dec.getClass() != use.getClass()) {
-            throw new SymbolException("Type mismatch!");
+            if (dec.getClass() == ArraySymbol.class)
+                throw new SymbolException(dec.getName() + " is defined as an array, but used as an int.");
+            else
+                throw new SymbolException(use.getName() + " is defined as an array, but used as an int.");
         }
     }
 
@@ -127,6 +134,8 @@ public class SymbolTable {
     public boolean haveMatchingParameters (FuncSymbol dec, FuncSymbol use) {
         if (dec.getParams() == null && use.getParams() == null)
             return true;
+        if ((dec.getParams() == null && use.getParams() != null) || (dec.getParams() != null && use.getParams() == null))
+            return false;
         if (dec.getParams() != null && use.getParams() != null) {
             /* Checks to make sure they have the same number of parameters */
             if (dec.getParams().size() != use.getParams().size())
@@ -139,9 +148,7 @@ public class SymbolTable {
                 if (i.next().getClass() != j.next().getClass())
                     return false;
             }
-            return true;
         }
-
         return true;
     }
 
@@ -163,11 +170,11 @@ public class SymbolTable {
 
     /* Prints the scope */
     public void printScope (int spaces) {
-        if (this.tableList.get(0).isEmpty()) {
+        if (this.tableStack.peek().isEmpty()) {
             indent(spaces);
-            System.out.println("No variable definitions found.");
+            System.out.println("No variable definitions in block.");
         } else {
-            for (Symbol sym : this.tableList.get(0).values()) {
+            for (Symbol sym : this.tableStack.peek().values()) {
                 indent(spaces);
                 System.out.println(sym);
             }
@@ -241,14 +248,14 @@ public class SymbolTable {
             Symbol sym = new ArraySymbol(tree.id, tree.size);
             if (this.addSymbol(sym) == false) {
                 indent(spaces);
-                this.error("Variable redefinition.");
+                this.error("Variable redefinition (" + sym.getName() + ").");
             }
         }
         else {
             Symbol sym = new IntSymbol(tree.id);
             if (this.addSymbol(sym) == false) {
                 indent(spaces);
-                this.error("Variable redefinition.");
+                this.error("Variable redefinition (" + sym.getName() + ").");
             }
         }
     }
@@ -262,7 +269,7 @@ public class SymbolTable {
         Symbol sym = new FuncSymbol(tree.id, 0, tree.type.type);
         if (this.addSymbol(sym) == false) {
             indent(spaces);
-            this.error("Function redefintion.");
+            this.error("Function redefintion (" + sym.getName() + ").");
         }
         this.newScope();
         spaces += TAB;
@@ -282,10 +289,10 @@ public class SymbolTable {
     /* Show table for Parameters */
     public void showTable(Param tree, int spaces) {
         if (tree.isArray) {
-            ArraySymbol arrSym = new ArraySymbol(tree.id);
+            ArraySymbol arrSym = new ArraySymbol(tree.id, 0);
             if (this.addSymbol(arrSym) == false) {
                 indent(spaces);
-                this.error("Parameter redefintion.");
+                this.error("Parameter redefintion (" + arrSym.getName() + ").");
             }
             else
                 this.currFunc.addParam(arrSym);
@@ -294,7 +301,7 @@ public class SymbolTable {
             IntSymbol sym = new IntSymbol(tree.id);
             if (this.addSymbol(sym) == false) {
                 indent(spaces);
-                this.error("Parameter redefintion.");
+                this.error("Parameter redefintion (" + sym.getName() + ").");
             }
             else
                 this.currFunc.addParam(sym);
@@ -313,7 +320,7 @@ public class SymbolTable {
     public void showTable(Stmt tree, int spaces) {
         if (tree instanceof StmtComp) {
             indent(spaces);
-            System.out.println("Entering Block:");
+            System.out.println("Entering Local Block:");
             this.newScope();
             spaces += TAB;
             showTable((StmtComp)tree, spaces);
@@ -473,5 +480,98 @@ public class SymbolTable {
             } catch (Exception e) {  }
         }
         showTable(tree.expression, spaces);
+    }
+
+    /* Show table for additive operations */
+    private void showTable (AddOp tree, int spaces) {
+        if (tree.left instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.left;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.left, spaces);
+
+        if (tree.right instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.right;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.right, spaces);
+    }
+
+    /* Show table for multiplicative operations */
+    private void showTable (MulOp tree, int spaces) {
+        if (tree.left instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.left;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.left, spaces);
+
+        if (tree.right instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.right;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.right, spaces);
+    }
+
+    /* Show table for relational operations */
+    private void showTable (RelOp tree, int spaces) {
+        if (tree.left instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.left;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.left, spaces);
+
+        if (tree.right instanceof ExpCall) {
+            ExpCall call = (ExpCall) tree.right;
+            Symbol sym = new FuncSymbol(call.id, 0, "INT");
+            try {
+                FuncSymbol checkSym = (FuncSymbol) this.getMatchingSymbol(sym);
+
+                if (checkSym.getReturnType().equals("VOID")) {
+                    indent(spaces);
+                    this.error(checkSym.getName() + " of type VOID used in expression requiring type INT.");
+                }
+            } catch (Exception e) { /* Catch, But Do Nothing */ }
+        }
+        showTable(tree.right, spaces);
     }
 }
