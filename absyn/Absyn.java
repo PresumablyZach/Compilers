@@ -9,7 +9,7 @@ abstract public class Absyn {
 	static private void indent (int spaces) {
 		for (int i = 0; i < spaces; i++) System.out.print(" ");
 	}
-	
+
 	/* Recursive, overloaded functions to show the program's parse tree */
 
 	/* Declaration-list tree */
@@ -57,7 +57,7 @@ abstract public class Absyn {
 			}
 		}
 	}
-    
+
     /* Declaration type trees */
     static public void showTree (Dec tree, int spaces) {
         if (tree instanceof DecVar)
@@ -73,7 +73,7 @@ abstract public class Absyn {
             }
         }
     }
-    
+
     /* Statement type trees */
     static public void showTree (Stmt tree, int spaces) {
         if (tree instanceof StmtComp)
@@ -95,7 +95,7 @@ abstract public class Absyn {
             }
         }
     }
-    
+
     /* Expression Type trees */
     static public void showTree (Exp tree, int spaces) {
         if (tree instanceof ExpAssign)
@@ -142,6 +142,19 @@ abstract public class Absyn {
 		showTree(tree.body, spaces);
 	}
 
+	/* Function Parameters Tree */
+	static public void showTree (Params tree, int spaces) {
+		indent(spaces);
+		System.out.println("Params: ");
+		spaces += SPACES;
+		if (tree.isVoid) {
+			indent(spaces);
+			System.out.println("VOID");
+		}
+		else
+			showTree(tree.pList, spaces);
+	}
+
 	/* Parameter tree */
 	static public void showTree (Param tree, int spaces) {
 		indent(spaces);
@@ -166,7 +179,7 @@ abstract public class Absyn {
 		System.out.println("ExpStmt: ");
 		spaces += SPACES;
 		showTree(tree.expression, spaces);
-		
+
 	}
 
 	/* Select-statement tree */
@@ -249,16 +262,16 @@ abstract public class Absyn {
 
 		showTree(tree.right, spaces);
 	}
-    
+
     /* Add-Operation-expression tree */
     static private void showTree (AddOp tree, int spaces) {
         indent(spaces);
         System.out.println("AddOp: ");
-        
+
         spaces += SPACES;
         showTree(tree.left, spaces);
         indent(spaces);
-        
+
         System.out.print("Op: ");
         if (tree.operation == AddOp.PLUS)
             System.out.println(" + ");
@@ -270,19 +283,19 @@ abstract public class Absyn {
             } catch (NullPointerException e) {
                 System.out.println("Illegal Operator (Line unknown)");
             }
-        
+
         showTree(tree.right, spaces);
     }
-    
+
     /* Rel-Operation-expression tree */
     static private void showTree (RelOp tree, int spaces) {
         indent(spaces);
         System.out.println("RelOp: ");
-        
+
         spaces += SPACES;
         showTree(tree.left, spaces);
         indent(spaces);
-        
+
         System.out.print("Op: ");
         if (tree.operation == RelOp.LT)
             System.out.println(" < ");
@@ -302,7 +315,7 @@ abstract public class Absyn {
             } catch (NullPointerException e) {
                 System.out.println("Illegal Operator (Line unknown)");
             }
-        
+
         showTree(tree.right, spaces);
     }
 
@@ -319,22 +332,3 @@ abstract public class Absyn {
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
